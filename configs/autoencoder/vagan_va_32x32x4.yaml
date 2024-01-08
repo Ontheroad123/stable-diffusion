@@ -1,0 +1,59 @@
+model:
+  base_learning_rate: 4.5e-6
+  target: ldm.models.autoencoder.VQModel
+  params:
+    embed_dim: 4
+    n_embed: 16384
+    #ckpt_path: models/first_stage_models/vq-f8/model.ckpt
+    ddconfig:
+      double_z: false
+      z_channels: 4
+      resolution: 256
+      in_channels: 3
+      out_ch: 3
+      ch: 128
+      ch_mult:
+      - 1
+      - 2
+      - 2
+      - 4
+      num_res_blocks: 2
+      attn_resolutions:
+      - 32
+      dropout: 0.0
+    lossconfig:
+      target: ldm.modules.losses.vqperceptual.VQLPIPSWithDiscriminator
+      params:
+        disc_conditional: False
+        disc_in_channels: 3
+        disc_start: 30001
+        disc_weight: 0.8
+        codebook_weight: 1.0
+
+data:
+  target: main.DataModuleFromConfig
+  params:
+    batch_size: 4
+    wrap: True
+    train:
+      target: ldm.data.custom_class.CustomTrain
+      params:
+        size: 256
+        #degradation: pil_nearest
+    validation:
+      target: ldm.data.custom_class.CustomTest
+      params:
+        size: 256
+
+lightning:
+  callbacks:
+    image_logger:
+      target: main.ImageLogger
+      params:
+        batch_frequency: 10
+        max_images: 8
+        increase_log_steps: True
+
+  trainer:
+    benchmark: True
+    accumulate_grad_batches: 2
